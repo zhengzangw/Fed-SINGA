@@ -1,5 +1,50 @@
+[project]
+authors = [
+  "Zangwei <zangwei@comp.nus.edu.sg>",
+  "Xiaoxin",
+]
+description = "Federated learning powered by Singa. Course project of CS6203"
+documentation = "https://github.com/zhengzangw/Fed-SINGA"
+homepage = "https://github.com/zhengzangw/Fed-SINGA"
+license = "Apache2.0"
+name = "fedsinga"
+python = "3.6"
+readme = "README.md"
+repository = "https://github.com/zhengzangw/Fed-SINGA"
+
 [tool]
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.0.1"
 tag_format = "$version"
+version = "0.0.1"
+
+[tool.black]
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | foo.py           # also separately exclude a file named foo.py in
+                     # the root of the project
+)
+'''
+include = '\.pyi?$'
+line-length = 99
+target_version = ['py36']
+
+[tool.isort]
+profile = "black"
+
+[tool.flake8]
+max-line-length = 99
+# extend-ignore = "E203,"
+# max-complexity = 10
