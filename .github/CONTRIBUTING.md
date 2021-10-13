@@ -19,3 +19,9 @@ Please follow commit message format (checked by commitizen)
 ```txt
 pattern: (build|ci|docs|feat|fix|perf|refactor|style|test|chore|revert|bump)(\(\S+\))?!?:(\s.*)
 ```
+
+## Test
+
+```py
+pytest --cov=src tests/
+```
