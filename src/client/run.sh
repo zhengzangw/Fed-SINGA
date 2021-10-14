@@ -9,7 +9,7 @@ function ctrl_c() {
   pkill -P $$
 }
 
-for e in {201..400}
+for e in {1..500}
 do
   echo "epoch: $e"
   for ((i=0; i<NUM_CLIENTS; i++)); do
@@ -17,7 +17,7 @@ do
   #    wait -n
   #  done
     sleep .05
-    python mycnn.py cnn mnist -m 1 -i $i >> log_$i.txt &
+    python mycnn.py cnn mnist -m 1 -i $i >> log/log_$i.txt &
   done
   wait
   python aggregate.py

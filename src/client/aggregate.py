@@ -3,7 +3,7 @@ TENSOR_DICT_FILENAME = '/tensor_dict.npz'
 STATES_ATTR_FILENAME = '/states_attr.json'
 MODEL_STATE_TYPE = 0
 AUX_STATE_TYPE = 1
-CENTRAL_MODEL_PATH = "mymodel/central_model.zip"
+CENTRAL_MODEL_PATH = "checkpoint/central_model.zip"
 
 import os
 import time
@@ -151,9 +151,8 @@ def eval():
     model.set_optimizer(sgd)
     model.compile([tx], is_train=True, use_graph=True, sequential=False)
     dev.SetVerbosity(False)
-    celtral_model_path = "mymodel/central_model.zip"
-    print("loading model from " + celtral_model_path)
-    model.load_states(fpath=celtral_model_path)
+    # print("loading model from " + CENTRAL_MODEL_PATH)
+    model.load_states(fpath=CENTRAL_MODEL_PATH	)
     
     # print(model.get_states()['linear2.b'])
 
@@ -184,7 +183,7 @@ def eval():
 def aggregate(num):
     model_states = {}
     for d in range(num):
-        checkpointpath="mymodel/checkpoint_" + str(d) + ".zip"
+        checkpointpath="checkpoint/checkpoint_" + str(d) + ".zip"
         tmp, aux_states = load_states(checkpointpath)
         if not bool(model_states):
             model_states = tmp
@@ -199,11 +198,6 @@ def aggregate(num):
         os.remove(CENTRAL_MODEL_PATH)
     save_states(CENTRAL_MODEL_PATH, model_states)
     
-
-    # for i in range(10):
-    #     checkpointpath = "mymodel/checkpoint_"+ str(i) + ".zip"
-    #     if os.path.isfile(checkpointpath):    
-    #         os.remove(checkpointpath)
 
 aggregate(10)
 eval()

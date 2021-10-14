@@ -189,7 +189,7 @@ def run(global_rank,
     dev.SetVerbosity(verbosity)
     
     import os
-    celtral_model_path = "mymodel/central_model.zip"
+    celtral_model_path = "checkpoint/central_model.zip"
     if os.path.exists(celtral_model_path):
         print("loading model from " + celtral_model_path)
         model.load_states(fpath=celtral_model_path)
@@ -267,7 +267,7 @@ def run(global_rank,
                   (test_correct / (num_val_batch * batch_size * world_size),
                    time.time() - start_time),
                   flush=True)
-            checkpointpath = "mymodel/checkpoint_" + str(device_id) + ".zip"
+            checkpointpath = "checkpoint/checkpoint_" + str(device_id) + ".zip"
             if os.path.exists(checkpointpath):
                 os.remove(checkpointpath)
             model.save_states(checkpointpath)
