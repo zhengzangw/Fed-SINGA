@@ -17,7 +17,7 @@ do
   #    wait -n
   #  done
     sleep .05
-    python mycnn.py cnn mnist -m 1 -i $i >> log/log_$i.txt &
+    python train.py cnn mnist -m 1 -i $i >> log/log_$i.txt &
   done
   wait
   python aggregate.py
