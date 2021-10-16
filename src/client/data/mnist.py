@@ -17,41 +17,38 @@
 # under the License.
 #
 
-import numpy as np
+import codecs
+import gzip
 import os
 import sys
-import gzip
-import codecs
+
+import numpy as np
 
 
 def check_dataset_exist(dirpath):
     if not os.path.exists(dirpath):
         print(
-            'The MNIST dataset does not exist. Please download the mnist dataset using python data/download_mnist.py'
+            "The MNIST dataset does not exist. Please download the mnist dataset using python data/download_mnist.py"
         )
         sys.exit(0)
     return dirpath
 
 
 def load_dataset():
-    train_x_path = '/tmp/train-images-idx3-ubyte.gz'
-    train_y_path = '/tmp/train-labels-idx1-ubyte.gz'
-    valid_x_path = '/tmp/t10k-images-idx3-ubyte.gz'
-    valid_y_path = '/tmp/t10k-labels-idx1-ubyte.gz'
+    train_x_path = "/tmp/train-images-idx3-ubyte.gz"
+    train_y_path = "/tmp/train-labels-idx1-ubyte.gz"
+    valid_x_path = "/tmp/t10k-images-idx3-ubyte.gz"
+    valid_y_path = "/tmp/t10k-labels-idx1-ubyte.gz"
 
-    train_x = read_image_file(check_dataset_exist(train_x_path)).astype(
-        np.float32)
-    train_y = read_label_file(check_dataset_exist(train_y_path)).astype(
-        np.float32)
-    valid_x = read_image_file(check_dataset_exist(valid_x_path)).astype(
-        np.float32)
-    valid_y = read_label_file(check_dataset_exist(valid_y_path)).astype(
-        np.float32)
+    train_x = read_image_file(check_dataset_exist(train_x_path)).astype(np.float32)
+    train_y = read_label_file(check_dataset_exist(train_y_path)).astype(np.float32)
+    valid_x = read_image_file(check_dataset_exist(valid_x_path)).astype(np.float32)
+    valid_y = read_label_file(check_dataset_exist(valid_y_path)).astype(np.float32)
     return train_x, train_y, valid_x, valid_y
 
 
 def read_label_file(path):
-    with gzip.open(path, 'rb') as f:
+    with gzip.open(path, "rb") as f:
         data = f.read()
         assert get_int(data[:4]) == 2049
         length = get_int(data[4:8])
@@ -60,18 +57,19 @@ def read_label_file(path):
 
 
 def get_int(b):
-    return int(codecs.encode(b, 'hex'), 16)
+    return int(codecs.encode(b, "hex"), 16)
 
 
 def read_image_file(path):
-    with gzip.open(path, 'rb') as f:
+    with gzip.open(path, "rb") as f:
         data = f.read()
         assert get_int(data[:4]) == 2051
         length = get_int(data[4:8])
         num_rows = get_int(data[8:12])
         num_cols = get_int(data[12:16])
         parsed = np.frombuffer(data, dtype=np.uint8, offset=16).reshape(
-            (length, 1, num_rows, num_cols))
+            (length, 1, num_rows, num_cols)
+        )
         return parsed
 
 

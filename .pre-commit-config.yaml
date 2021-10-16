@@ -31,7 +31,7 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
-        # args: [--ignore, "E203, F401, F841, W503, E501"]
+        args: [--ignore, "E203, E501, E731"]
 
   # yaml formatting
   - repo: https://github.com/pre-commit/mirrors-prettier

@@ -17,12 +17,10 @@
 # under the License.
 #
 
-from singa import layer
-from singa import model
+from singa import layer, model
 
 
 class CNN(model.Model):
-
     def __init__(self, num_classes=10, num_channels=1):
         super(CNN, self).__init__()
         self.num_classes = num_classes
@@ -53,20 +51,16 @@ class CNN(model.Model):
         out = self.forward(x)
         loss = self.softmax_cross_entropy(out, y)
 
-        if dist_option == 'plain':
+        if dist_option == "plain":
             self.optimizer(loss)
-        elif dist_option == 'half':
+        elif dist_option == "half":
             self.optimizer.backward_and_update_half(loss)
-        elif dist_option == 'partialUpdate':
+        elif dist_option == "partialUpdate":
             self.optimizer.backward_and_partial_update(loss)
-        elif dist_option == 'sparseTopK':
-            self.optimizer.backward_and_sparse_update(loss,
-                                                      topK=True,
-                                                      spars=spars)
-        elif dist_option == 'sparseThreshold':
-            self.optimizer.backward_and_sparse_update(loss,
-                                                      topK=False,
-                                                      spars=spars)
+        elif dist_option == "sparseTopK":
+            self.optimizer.backward_and_sparse_update(loss, topK=True, spars=spars)
+        elif dist_option == "sparseThreshold":
+            self.optimizer.backward_and_sparse_update(loss, topK=False, spars=spars)
         return out, loss
 
     def set_optimizer(self, optimizer):
@@ -85,4 +79,4 @@ def create_model(pretrained=False, **kwargs):
     return model
 
 
-__all__ = ['CNN', 'create_model']
+__all__ = ["CNN", "create_model"]

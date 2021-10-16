@@ -1,2 +1,3 @@
 # Fed-SINGA
- Federated Learning Framework using Apache SINGA
+
+Federated Learning Framework using Apache SINGA

@@ -17,13 +17,10 @@
 # under the License.
 #
 
-from singa import layer
-from singa import model
-from singa import tensor
-from singa import opt
-from singa import device
 import argparse
+
 import numpy as np
+from singa import device, layer, model, opt, tensor
 
 np_dtype = {"float16": np.float16, "float32": np.float32}
 
@@ -31,7 +28,6 @@ singa_dtype = {"float16": tensor.float16, "float32": tensor.float32}
 
 
 class MLP(model.Model):
-
     def __init__(self, data_size=10, perceptron_size=100, num_classes=10):
         super(MLP, self).__init__()
         self.num_classes = num_classes
@@ -52,20 +48,16 @@ class MLP(model.Model):
         out = self.forward(x)
         loss = self.softmax_cross_entropy(out, y)
 
-        if dist_option == 'plain':
+        if dist_option == "plain":
             self.optimizer(loss)
-        elif dist_option == 'half':
+        elif dist_option == "half":
             self.optimizer.backward_and_update_half(loss)
-        elif dist_option == 'partialUpdate':
+        elif dist_option == "partialUpdate":
             self.optimizer.backward_and_partial_update(loss)
-        elif dist_option == 'sparseTopK':
-            self.optimizer.backward_and_sparse_update(loss,
-                                                      topK=True,
-                                                      spars=spars)
-        elif dist_option == 'sparseThreshold':
-            self.optimizer.backward_and_sparse_update(loss,
-                                                      topK=False,
-                                                      spars=spars)
+        elif dist_option == "sparseTopK":
+            self.optimizer.backward_and_sparse_update(loss, topK=True, spars=spars)
+        elif dist_option == "sparseThreshold":
+            self.optimizer.backward_and_sparse_update(loss, topK=False, spars=spars)
         return out, loss
 
     def set_optimizer(self, optimizer):
@@ -76,7 +68,7 @@ def create_model(pretrained=False, **kwargs):
     """Constructs a CNN model.
     Args:
         pretrained (bool): If True, returns a pre-trained model.
-    
+
     Returns:
         The created CNN model.
     """
@@ -85,28 +77,24 @@ def create_model(pretrained=False, **kwargs):
     return model
 
 
-__all__ = ['MLP', 'create_model']
+__all__ = ["MLP", "create_model"]
 
 if __name__ == "__main__":
     np.random.seed(0)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p',
-                        choices=['float32', 'float16'],
-                        default='float32',
-                        dest='precision')
-    parser.add_argument('-g',
-                        '--disable-graph',
-                        default='True',
-                        action='store_false',
-                        help='disable graph',
-                        dest='graph')
-    parser.add_argument('-m',
-                        '--max-epoch',
-                        default=1001,
-                        type=int,
-                        help='maximum epochs',
-                        dest='max_epoch')
+    parser.add_argument("-p", choices=["float32", "float16"], default="float32", dest="precision")
+    parser.add_argument(
+        "-g",
+        "--disable-graph",
+        default="True",
+        action="store_false",
+        help="disable graph",
+        dest="graph",
+    )
+    parser.add_argument(
+        "-m", "--max-epoch", default=1001, type=int, help="maximum epochs", dest="max_epoch"
+    )
     args = parser.parse_args()
 
     # generate the boundary
@@ -140,7 +128,7 @@ if __name__ == "__main__":
     for i in range(args.max_epoch):
         tx.copy_from_numpy(data)
         ty.copy_from_numpy(label)
-        out, loss = model(tx, ty, 'fp32', spars=None)
+        out, loss = model(tx, ty, "fp32", spars=None)
 
         if i % 100 == 0:
             print("training loss = ", tensor.to_numpy(loss)[0])
