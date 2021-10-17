@@ -1,0 +1,10 @@
+syntax = "proto3";
+package interface;
+
+message WeightPush {
+  string message = 1;
+}
+
+message WeightPull {
+  string message = 1;
+}

@@ -1,4 +1,0 @@
-FROM zhengzangw/fedsinga:latest
-
-COPY ./src /app
-WORKDIR /app

@@ -1,3 +1,5 @@
+protobuf
+
 # --------- linters --------- #
 pre-commit
 black
