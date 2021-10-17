@@ -1,10 +1,13 @@
 syntax = "proto3";
 package interface;
 
-message WeightPush {
-  string message = 1;
+enum Op {
+  DEFAULT = 0;
+  PUSH = 1;
+  PULL = 2;
 }
 
-message WeightPull {
-  string message = 1;
+message WeightsExchange {
+  Op op_type = 1;
+  string weights = 2;
 }

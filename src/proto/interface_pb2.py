@@ -9,6 +9,7 @@ from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf import reflection as _reflection
 from google.protobuf import symbol_database as _symbol_database
+from google.protobuf.internal import enum_type_wrapper
 
 # @@protoc_insertion_point(imports)
 
@@ -21,23 +22,69 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     syntax="proto3",
     serialized_options=None,
     serialized_pb=_b(
-        '\n\x19src/proto/interface.proto\x12\tinterface"\x1d\n\nWeightPush\x12\x0f\n\x07message\x18\x01 \x01(\t"\x1d\n\nWeightPull\x12\x0f\n\x07message\x18\x01 \x01(\tb\x06proto3'
+        '\n\x19src/proto/interface.proto\x12\tinterface"B\n\x0fWeightsExchange\x12\x1e\n\x07op_type\x18\x01 \x01(\x0e\x32\r.interface.Op\x12\x0f\n\x07weights\x18\x02 \x01(\t*%\n\x02Op\x12\x0b\n\x07\x44\x45\x46\x41ULT\x10\x00\x12\x08\n\x04PUSH\x10\x01\x12\x08\n\x04PULL\x10\x02\x62\x06proto3'
     ),
 )
 
+_OP = _descriptor.EnumDescriptor(
+    name="Op",
+    full_name="interface.Op",
+    filename=None,
+    file=DESCRIPTOR,
+    values=[
+        _descriptor.EnumValueDescriptor(
+            name="DEFAULT", index=0, number=0, serialized_options=None, type=None
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="PUSH", index=1, number=1, serialized_options=None, type=None
+        ),
+        _descriptor.EnumValueDescriptor(
+            name="PULL", index=2, number=2, serialized_options=None, type=None
+        ),
+    ],
+    containing_type=None,
+    serialized_options=None,
+    serialized_start=108,
+    serialized_end=145,
+)
+_sym_db.RegisterEnumDescriptor(_OP)
 
-_WEIGHTPUSH = _descriptor.Descriptor(
-    name="WeightPush",
-    full_name="interface.WeightPush",
+Op = enum_type_wrapper.EnumTypeWrapper(_OP)
+DEFAULT = 0
+PUSH = 1
+PULL = 2
+
+
+_WEIGHTSEXCHANGE = _descriptor.Descriptor(
+    name="WeightsExchange",
+    full_name="interface.WeightsExchange",
     filename=None,
     file=DESCRIPTOR,
     containing_type=None,
     fields=[
         _descriptor.FieldDescriptor(
-            name="message",
-            full_name="interface.WeightPush.message",
+            name="op_type",
+            full_name="interface.WeightsExchange.op_type",
             index=0,
             number=1,
+            type=14,
+            cpp_type=8,
+            label=1,
+            has_default_value=False,
+            default_value=0,
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="weights",
+            full_name="interface.WeightsExchange.weights",
+            index=1,
+            number=2,
             type=9,
             cpp_type=9,
             label=1,
@@ -61,73 +108,24 @@ _WEIGHTPUSH = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[],
     serialized_start=40,
-    serialized_end=69,
+    serialized_end=106,
 )
 
-
-_WEIGHTPULL = _descriptor.Descriptor(
-    name="WeightPull",
-    full_name="interface.WeightPull",
-    filename=None,
-    file=DESCRIPTOR,
-    containing_type=None,
-    fields=[
-        _descriptor.FieldDescriptor(
-            name="message",
-            full_name="interface.WeightPull.message",
-            index=0,
-            number=1,
-            type=9,
-            cpp_type=9,
-            label=1,
-            has_default_value=False,
-            default_value=_b("").decode("utf-8"),
-            message_type=None,
-            enum_type=None,
-            containing_type=None,
-            is_extension=False,
-            extension_scope=None,
-            serialized_options=None,
-            file=DESCRIPTOR,
-        ),
-    ],
-    extensions=[],
-    nested_types=[],
-    enum_types=[],
-    serialized_options=None,
-    is_extendable=False,
-    syntax="proto3",
-    extension_ranges=[],
-    oneofs=[],
-    serialized_start=71,
-    serialized_end=100,
-)
-
-DESCRIPTOR.message_types_by_name["WeightPush"] = _WEIGHTPUSH
-DESCRIPTOR.message_types_by_name["WeightPull"] = _WEIGHTPULL
+_WEIGHTSEXCHANGE.fields_by_name["op_type"].enum_type = _OP
+DESCRIPTOR.message_types_by_name["WeightsExchange"] = _WEIGHTSEXCHANGE
+DESCRIPTOR.enum_types_by_name["Op"] = _OP
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
-WeightPush = _reflection.GeneratedProtocolMessageType(
-    "WeightPush",
+WeightsExchange = _reflection.GeneratedProtocolMessageType(
+    "WeightsExchange",
     (_message.Message,),
     {
-        "DESCRIPTOR": _WEIGHTPUSH,
+        "DESCRIPTOR": _WEIGHTSEXCHANGE,
         "__module__": "src.proto.interface_pb2"
-        # @@protoc_insertion_point(class_scope:interface.WeightPush)
+        # @@protoc_insertion_point(class_scope:interface.WeightsExchange)
     },
 )
-_sym_db.RegisterMessage(WeightPush)
-
-WeightPull = _reflection.GeneratedProtocolMessageType(
-    "WeightPull",
-    (_message.Message,),
-    {
-        "DESCRIPTOR": _WEIGHTPULL,
-        "__module__": "src.proto.interface_pb2"
-        # @@protoc_insertion_point(class_scope:interface.WeightPull)
-    },
-)
-_sym_db.RegisterMessage(WeightPull)
+_sym_db.RegisterMessage(WeightsExchange)
 
 
 # @@protoc_insertion_point(module_scope)
