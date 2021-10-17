@@ -1,6 +1,7 @@
 import numpy as np
-from data import mnist
 from tqdm import tqdm
+
+from . import mnist
 
 
 def split():
