@@ -1,7 +1,11 @@
+import os
+
 import numpy as np
 from tqdm import tqdm
 
 from . import mnist
+
+path = os.path.dirname(os.path.realpath(__file__))
 
 
 def split():
@@ -15,8 +19,8 @@ def split():
         val = val.reshape(len(val), 28 * 28)
         fn1 = "mnist_train_" + str(i) + ".csv"
         fn2 = "mnist_val_" + str(i) + ".csv"
-        np.savetxt(fn1, train, delimiter=",")
-        np.savetxt(fn2, val, delimiter=",")
+        np.savetxt(os.path.join(path, fn1), train, delimiter=",")
+        np.savetxt(os.path.join(path, fn2), val, delimiter=",")
 
 
 if __name__ == "__main__":
