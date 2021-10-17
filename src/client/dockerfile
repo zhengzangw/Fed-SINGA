@@ -1,0 +1,5 @@
+FROM zhengzangw/fedsinga:latest
+
+COPY ./data /data
+COPY ./src /app
+WORKDIR /app

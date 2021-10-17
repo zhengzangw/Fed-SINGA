@@ -1,0 +1,18 @@
+version: "3.3"
+
+services:
+  server:
+    build:
+      context: ./
+      dockerfile: ./src/server/dockerfile
+    command: python ./server/server.py
+    ports:
+      - 1234:1234
+  client:
+    build:
+      context: ./
+      dockerfile: ./src/client/dockerfile
+    command: python ./client/client.py
+    network_mode: host
+    depends_on:
+      - server
