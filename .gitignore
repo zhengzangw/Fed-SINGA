@@ -1,5 +1,5 @@
 # == Custom ==
-# Data
+checkpoint/*.zip
 *.csv
 
 # Byte-compiled / optimized / DLL files

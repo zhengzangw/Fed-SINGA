@@ -1,3 +1,4 @@
+import argparse
 import os
 
 import numpy as np
@@ -5,10 +6,8 @@ from tqdm import tqdm
 
 from . import mnist
 
-path = os.path.dirname(os.path.realpath(__file__))
 
-
-def split():
+def split(path="."):
 
     train_x, train_y, val_x, val_y = mnist.load()
 
@@ -24,4 +23,7 @@ def split():
 
 
 if __name__ == "__main__":
-    split()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dir", "-d", type=str, default="data")
+    args = parser.parse_args()
+    split(path=args.dir)

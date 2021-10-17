@@ -1,12 +1,16 @@
 import argparse
+import os
 import time
 
 import numpy as np
 from PIL import Image
 from singa import device, opt, tensor
+from tqdm import tqdm
+
+from .data import cifar10, cifar100, mnist
+from .model import alexnet, cnn, mlp, resnet, xceptionnet
 
 np_dtype = {"float16": np.float16, "float32": np.float32}
-
 singa_dtype = {"float16": tensor.float16, "float32": tensor.float32}
 
 
@@ -88,6 +92,38 @@ def resize_dataset(x, image_size):
     return X
 
 
+def get_data(data, data_dist="iid", device_id=None):
+    if data == "cifar10":
+        train_x, train_y, val_x, val_y = cifar10.load()
+        num_classes = 10
+    elif data == "cifar100":
+        train_x, train_y, val_x, val_y = cifar100.load()
+        num_classes = 100
+    elif data == "mnist":
+        if data_dist == "iid":
+            train_x, train_y, val_x, val_y = mnist.load()
+        else:
+            train_x, train_y, val_x, val_y = load_mnist_dataset(device_id)
+        num_classes = 10
+    return train_x, train_y, val_x, val_y, num_classes
+
+
+def get_model(model, num_channels=None, num_classes=None, data_size=None):
+    if model == "resnet":
+        model = resnet.resnet50(num_channels=num_channels, num_classes=num_classes)
+    elif model == "xceptionnet":
+        model = xceptionnet.create_model(num_channels=num_channels, num_classes=num_classes)
+    elif model == "cnn":
+        model = cnn.create_model(num_channels=num_channels, num_classes=num_classes)
+    elif model == "alexnet":
+        model = alexnet.create_model(num_channels=num_channels, num_classes=num_classes)
+    elif model == "mlp":
+        model = mlp.create_model(data_size=data_size, num_classes=num_classes)
+    else:
+        raise NotImplementedError
+    return model
+
+
 def run(
     global_rank,
     world_size,
@@ -107,52 +143,18 @@ def run(
 
     dev = device.get_default_device()
     dev.SetRandSeed(0)
-
     np.random.seed(0)
 
-    if data == "cifar10":
-        from data import cifar10
-
-        train_x, train_y, val_x, val_y = cifar10.load()
-        num_classes = 10
-    elif data == "cifar100":
-        from data import cifar100
-
-        train_x, train_y, val_x, val_y = cifar100.load()
-        num_classes = 100
-    elif data == "mnist":
-        if data_dist == "iid":
-            from data import mnist
-
-            train_x, train_y, val_x, val_y = mnist.load()
-        else:
-            train_x, train_y, val_x, val_y = load_mnist_dataset(device_id)
-        num_classes = 10
-
+    # Prepare dataset
+    train_x, train_y, val_x, val_y, num_classes = get_data(data, data_dist, device_id)
     num_channels = train_x.shape[1]
     image_size = train_x.shape[2]
     data_size = np.prod(train_x.shape[1 : train_x.ndim]).item()
 
-    if model == "resnet":
-        from model import resnet
-
-        model = resnet.resnet50(num_channels=num_channels, num_classes=num_classes)
-    elif model == "xceptionnet":
-        from model import xceptionnet
-
-        model = xceptionnet.create_model(num_channels=num_channels, num_classes=num_classes)
-    elif model == "cnn":
-        from model import cnn
-
-        model = cnn.create_model(num_channels=num_channels, num_classes=num_classes)
-    elif model == "alexnet":
-        from model import alexnet
-
-        model = alexnet.create_model(num_channels=num_channels, num_classes=num_classes)
-    elif model == "mlp":
-        from model import mlp
-
-        model = mlp.create_model(data_size=data_size, num_classes=num_classes)
+    # Prepare model
+    model = get_model(
+        model, num_channels=num_channels, num_classes=num_classes, data_size=data_size
+    )
 
     # For distributed training, sequential has better performance
     if hasattr(sgd, "communicator"):
@@ -195,8 +197,6 @@ def run(
     model.compile([tx], is_train=True, use_graph=graph, sequential=sequential)
     dev.SetVerbosity(verbosity)
 
-    import os
-
     if data_dist == "non-iid":
         celtral_model_path = "checkpoint/central_model.zip"
         if os.path.exists(celtral_model_path):
@@ -221,7 +221,7 @@ def run(
         train_loss = np.zeros(shape=[1], dtype=np.float32)
 
         model.train()
-        for b in range(num_train_batch):
+        for b in tqdm(range(num_train_batch)):
             # Generate the patch data in this iteration
             x = train_x[idx[b * batch_size : (b + 1) * batch_size]]
             if model.dimension == 4:
@@ -289,13 +289,13 @@ def run(
     dev.PrintTimeProfiling()
 
 
-if __name__ == "__main__":
+def parseargs():
     # Use argparse to get command config: max_epoch, model, data, etc., for single gpu training
     parser = argparse.ArgumentParser(description="Training using the autograd and graph.")
     parser.add_argument(
-        "model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="cnn"
+        "--model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="cnn"
     )
-    parser.add_argument("data", choices=["mnist", "cifar10", "cifar100"], default="mnist")
+    parser.add_argument("--data", choices=["mnist", "cifar10", "cifar100"], default="mnist")
     parser.add_argument("-p", choices=["float32", "float16"], default="float32", dest="precision")
     parser.add_argument(
         "-m", "--max-epoch", default=10, type=int, help="maximum epochs", dest="max_epoch"
@@ -331,6 +331,11 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    return args
+
+
+if __name__ == "__main__":
+    args = parseargs()
 
     sgd = opt.SGD(lr=args.lr, momentum=0.9, weight_decay=1e-5, dtype=singa_dtype[args.precision])
     run(
