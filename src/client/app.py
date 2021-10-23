@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import socket
-import struct
-
-import numpy as np
-from google.protobuf.message import Message
-from singa import tensor
 
 from ..proto import interface_pb2 as proto
 from ..proto import utils
@@ -36,7 +31,7 @@ class Client:
         self.pack_format = pack_format
 
     def init_weights(self):
-        self.weights = tensor.from_numpy(np.asarray([[1, 0, 0], [0, 1, 0]], dtype=np.float32))
+        self.weights = None
 
     def start(self) -> None:
         self.sock.connect((self.host, self.port))

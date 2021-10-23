@@ -1,0 +1,33 @@
+version: "3.3"
+
+services:
+  server:
+    build:
+      context: ./
+      dockerfile: ./src/dockerfile
+    network_mode: host
+    volumes:
+      - ./:/app
+    command: python -m src.server.app --num_client 2
+
+  client_0:
+    build:
+      context: ./
+      dockerfile: ./src/dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ./:/app
+    command: python -m src.client.app --global_rank 0
+
+  client_1:
+    build:
+      context: ./
+      dockerfile: ./src/dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ./:/app
+    command: python -m src.client.app --global_rank 1

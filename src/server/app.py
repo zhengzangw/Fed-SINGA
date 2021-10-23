@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import socket
-import struct
 
-import numpy as np
-from google.protobuf.message import Message
 from singa import tensor
 
 from ..proto import interface_pb2 as proto
