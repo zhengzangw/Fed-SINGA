@@ -1,6 +1,8 @@
+import pickle
 import struct
 
 from google.protobuf.message import Message
+from singa import tensor
 
 
 def receive_all(conn, size):
@@ -14,7 +16,32 @@ def receive_all(conn, size):
     return buffer
 
 
-def send_all(conn, data: Message, pack_format="I") -> None:
-    data_len = struct.pack(f">{pack_format}", data.ByteSize())
-    conn.sendall(data_len)
+def send_int(conn, i, pack_format="I"):
+    data = struct.pack(f"!{pack_format}", i)
+    conn.sendall(data)
+
+
+def receive_int(conn, pack_format="I"):
+    buffer_size = struct.Struct(pack_format).size
+    data = receive_all(conn, buffer_size)
+    (data,) = struct.unpack(f"!{pack_format}", data)
+    return data
+
+
+def send_message(conn, data: Message, pack_format="I") -> None:
+    send_int(conn, data.ByteSize(), pack_format)
     conn.sendall(data.SerializePartialToString())
+
+
+def receive_message(conn, data: Message, pack_format="I"):
+    data_len = receive_int(conn, pack_format)
+    data.ParseFromString(receive_all(conn, data_len))
+    return data
+
+
+def serialize_tensor(t):
+    return pickle.dumps(tensor.to_numpy(t), protocol=0)
+
+
+def deserialize_tensor(t):
+    return tensor.from_numpy(pickle.loads(t))

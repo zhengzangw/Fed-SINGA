@@ -22,7 +22,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     syntax="proto3",
     serialized_options=None,
     serialized_pb=_b(
-        '\n\x19src/proto/interface.proto\x12\tinterface"B\n\x0fWeightsExchange\x12\x1e\n\x07op_type\x18\x01 \x01(\x0e\x32\r.interface.Op\x12\x0f\n\x07weights\x18\x02 \x01(\t*%\n\x02Op\x12\x0b\n\x07\x44\x45\x46\x41ULT\x10\x00\x12\x08\n\x04PUSH\x10\x01\x12\x08\n\x04PULL\x10\x02\x62\x06proto3'
+        '\n\x19src/proto/interface.proto\x12\tinterface"B\n\x0fWeightsExchange\x12\x1e\n\x07op_type\x18\x01 \x01(\x0e\x32\r.interface.Op\x12\x0f\n\x07weights\x18\x02 \x01(\x0c*%\n\x02Op\x12\x0b\n\x07\x44\x45\x46\x41ULT\x10\x00\x12\x08\n\x04PUSH\x10\x01\x12\x08\n\x04PULL\x10\x02\x62\x06proto3'
     ),
 )
 
@@ -85,11 +85,11 @@ _WEIGHTSEXCHANGE = _descriptor.Descriptor(
             full_name="interface.WeightsExchange.weights",
             index=1,
             number=2,
-            type=9,
+            type=12,
             cpp_type=9,
             label=1,
             has_default_value=False,
-            default_value=_b("").decode("utf-8"),
+            default_value=_b(""),
             message_type=None,
             enum_type=None,
             containing_type=None,

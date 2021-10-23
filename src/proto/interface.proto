@@ -9,5 +9,5 @@ enum Op {
 
 message WeightsExchange {
   Op op_type = 1;
-  string weights = 2;
+  bytes weights = 2;
 }

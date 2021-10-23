@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
+import argparse
 import socket
 import struct
 
+import numpy as np
 from google.protobuf.message import Message
+from singa import tensor
 
 from ..proto import interface_pb2 as proto
 from ..proto import utils
@@ -11,7 +14,9 @@ from ..proto import utils
 class Server:
     """Server sends and receives protobuf messages"""
 
-    def __init__(self, host: str = "127.0.0.1", port: str = 1234, pack_format="Q") -> None:
+    def __init__(
+        self, host: str = "127.0.0.1", port: str = 1234, pack_format: str = "Q", num_clients=1
+    ) -> None:
         """Class init method
 
         Args:
@@ -21,48 +26,70 @@ class Server:
         self.host = host
         self.port = port
         self.sock = socket.socket()
+
+        self.num_clients = num_clients
+        self.conns = [None] * num_clients
+        self.addrs = [None] * num_clients
+
         self.pack_format = pack_format
-        self.conn = None
+
+    def init_weights(self):
+        self.weights = tensor.random((3, 3))
 
     def start(self) -> None:
         self.sock.bind((self.host, self.port))
         self.sock.listen()
-        conn, addr = self.sock.accept()
-        print("Connected by", addr)
-        self.conn = conn
+        for _ in range(self.num_clients):
+            conn, addr = self.sock.accept()
+            rank = utils.receive_int(conn)
+            self.conns[rank] = conn
+            self.addrs[rank] = addr
+            print(f"[Server] Connected by {addr} [global_rank {rank}]")
 
-    def recv(self, message: Message):
-        buffer_size = struct.Struct(self.pack_format).size
-        data_len_buffer = utils.receive_all(self.conn, buffer_size)
-        (data_len,) = struct.unpack(f">{self.pack_format}", data_len_buffer)
+    def pull(self):
+        datas = [proto.WeightsExchange() for _ in range(self.num_clients)]
+        for i in range(self.num_clients):
+            utils.receive_message(self.conns[i], datas[i], self.pack_format)
+        weights = []
+        for i in range(self.num_clients):
+            weights.append(utils.deserialize_tensor(datas[i].weights))
+        self.weights = sum(weights)
 
-        message.ParseFromString(utils.receive_all(self.conn, data_len))
-        return message
+    def push(self) -> None:
+        message = proto.WeightsExchange()
+        message.op_type = proto.PULL
+        message.weights = utils.serialize_tensor(self.weights)
 
-    def send(self, data: Message) -> None:
-        utils.send_all(self.conn, data, self.pack_format)
+        for conn in self.conns:
+            utils.send_message(conn, message, self.pack_format)
 
     def close(self) -> None:
         self.sock.close()
 
 
-if __name__ == "__main__":
-    server = Server()
+def test(num_clients=1):
+    server = Server(num_clients=num_clients)
     server.start()
+    server.init_weights()
 
     max_epoch = 3
     for i in range(max_epoch):
         print(f"On epoch {i}:")
 
-        # Push weights
-        data = proto.WeightsExchange()
-        data.op_type = proto.PULL
-        data.weights = "Global weights"
-        server.send(data)
+        # Push to Clients
+        server.push()
+        print(server.weights)
 
-        # Pull weights
-        data = proto.WeightsExchange()
-        server.recv(data)
-        print(data)
+        # Collects from Clients
+        server.pull()
+        print(server.weights)
 
     server.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_clients", default=1, type=int)
+    args = parser.parse_args()
+
+    test(args.num_clients)
