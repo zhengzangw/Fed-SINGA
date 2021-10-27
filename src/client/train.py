@@ -289,7 +289,7 @@ def parseargs():
     # Use argparse to get command config: max_epoch, model, data, etc., for single gpu training
     parser = argparse.ArgumentParser(description="Training using the autograd and graph.")
     parser.add_argument(
-        "--model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="cnn"
+        "--model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="mlp"
     )
     parser.add_argument("--data", choices=["mnist", "cifar10", "cifar100"], default="mnist")
     parser.add_argument("-p", choices=["float32", "float16"], default="float32", dest="precision")

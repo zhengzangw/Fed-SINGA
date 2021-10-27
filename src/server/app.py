@@ -38,6 +38,7 @@ class Server:
     def start(self) -> None:
         self.sock.bind((self.host, self.port))
         self.sock.listen()
+        # print(f"Server started.")
         for _ in range(self.num_clients):
             conn, addr = self.sock.accept()
             rank = utils.receive_int(conn)
