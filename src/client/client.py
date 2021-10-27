@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+import argparse
+import socket
+
 import argparse
 import os
 import time
@@ -9,9 +13,14 @@ from tqdm import tqdm
 
 from data import cifar10, cifar100, mnist
 from model import alexnet, cnn, mlp, resnet, xceptionnet
+import onnx
+
+from app import Client
 
 np_dtype = {"float16": np.float16, "float32": np.float32}
 singa_dtype = {"float16": tensor.float16, "float32": tensor.float32}
+
+
 
 
 # Data augmentation
@@ -65,6 +74,7 @@ def reduce_variable(variable, dist_opt, reducer):
 
 
 def load_mnist_dataset(num=0):
+    print("loading non-iid mnist dataset ", num)
     fn1 = "data/mnist_train_" + str(num) + ".csv"
     fn2 = "data/mnist_val_" + str(num) + ".csv"
     train = np.loadtxt(fn1, delimiter=",")
@@ -141,12 +151,18 @@ def run(
     precision="float32",
 ):
 
+    client = Client(global_rank = device_id)
+    client.start()
+    client.init_weights()
+
     dev = device.get_default_device()
     dev.SetRandSeed(0)
     np.random.seed(0)
 
     # Prepare dataset
     train_x, train_y, val_x, val_y, num_classes = get_data(data, data_dist, device_id)
+    train_x_, train_y_, val_x_, val_y_, num_classes_ = get_data(data, 'iid', device_id)
+
     num_channels = train_x.shape[1]
     image_size = train_x.shape[2]
     data_size = np.prod(train_x.shape[1 : train_x.ndim]).item()
@@ -197,21 +213,27 @@ def run(
     model.compile([tx], is_train=True, use_graph=graph, sequential=sequential)
     dev.SetVerbosity(verbosity)
 
-    if data_dist == "non-iid":
-        celtral_model_path = "checkpoint/central_model.zip"
-        if os.path.exists(celtral_model_path):
-            print("loading model from " + celtral_model_path)
-            model.load_states(fpath=celtral_model_path)
-        else:
-            print("initiating a central model...")
-            model.save_states(celtral_model_path)
-            return
+    # if data_dist == "non-iid":
+    #     celtral_model_path = "checkpoint/central_model.zip"
+    #     if os.path.exists(celtral_model_path):
+    #         print("loading model from " + celtral_model_path)
+    #         model.load_states(fpath=celtral_model_path)
+    #     else:
+    #     	# Pull from Server
+    #     	client.pull()
+    #         print("initiating a central model...")
+    #         model.save_states(celtral_model_path)
+    #         return
 
     # Training and evaluation loop
     for epoch in range(max_epoch):
         start_time = time.time()
         np.random.shuffle(idx)
 
+        if epoch > 0:
+            client.pull()
+            model.set_states(client.weights)
+            
         if global_rank == 0:
             print("Starting Epoch %d:" % (epoch))
 
@@ -219,6 +241,34 @@ def run(
         train_correct = np.zeros(shape=[1], dtype=np.float32)
         test_correct = np.zeros(shape=[1], dtype=np.float32)
         train_loss = np.zeros(shape=[1], dtype=np.float32)
+
+        # Evaluation phase
+        model.eval()
+        for b in range(num_val_batch):
+            x = val_x[b * batch_size : (b + 1) * batch_size]
+            if model.dimension == 4:
+                if image_size != model.input_size:
+                    x = resize_dataset(x, model.input_size)
+            x = x.astype(np_dtype[precision])
+            y = val_y[b * batch_size : (b + 1) * batch_size]
+            tx.copy_from_numpy(x)
+            ty.copy_from_numpy(y)
+            out_test = model(tx)
+            test_correct += accuracy(tensor.to_numpy(out_test), y)
+
+        if DIST:
+            # Reduce the evaulation accuracy from multiple devices
+            test_correct = reduce_variable(test_correct, sgd, reducer)
+
+        # Output the evaluation accuracy
+        if global_rank == 0:
+            print(
+                "Evaluation accuracy = %f, Elapsed Time = %fs"
+                % (
+                    test_correct / (num_val_batch * batch_size * world_size),
+                    time.time() - start_time,
+                )
+            )
 
         model.train()
         for b in tqdm(range(num_train_batch)):
@@ -249,39 +299,12 @@ def run(
         if global_rank == 0:
             print(
                 "Training loss = %f, training accuracy = %f"
-                % (train_loss, train_correct / (num_train_batch * batch_size * world_size)),
-                flush=True,
+                % (train_loss, train_correct / (num_train_batch * batch_size * world_size))
             )
 
-        # Evaluation phase
-        model.eval()
-        for b in range(num_val_batch):
-            x = val_x[b * batch_size : (b + 1) * batch_size]
-            if model.dimension == 4:
-                if image_size != model.input_size:
-                    x = resize_dataset(x, model.input_size)
-            x = x.astype(np_dtype[precision])
-            y = val_y[b * batch_size : (b + 1) * batch_size]
-            tx.copy_from_numpy(x)
-            ty.copy_from_numpy(y)
-            out_test = model(tx)
-            test_correct += accuracy(tensor.to_numpy(out_test), y)
-
-        if DIST:
-            # Reduce the evaulation accuracy from multiple devices
-            test_correct = reduce_variable(test_correct, sgd, reducer)
-
-        # Output the evaluation accuracy
-        if global_rank == 0:
-            print(
-                "Evaluation accuracy = %f, Elapsed Time = %fs"
-                % (
-                    test_correct / (num_val_batch * batch_size * world_size),
-                    time.time() - start_time,
-                ),
-                flush=True,
-            )
-    
+        client.weights = model.get_states()
+        client.push()
+            
     dev.PrintTimeProfiling()
 
 
@@ -289,7 +312,7 @@ def parseargs():
     # Use argparse to get command config: max_epoch, model, data, etc., for single gpu training
     parser = argparse.ArgumentParser(description="Training using the autograd and graph.")
     parser.add_argument(
-        "--model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="cnn"
+        "--model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="mlp"
     )
     parser.add_argument("--data", choices=["mnist", "cifar10", "cifar100"], default="mnist")
     parser.add_argument("-p", choices=["float32", "float16"], default="float32", dest="precision")
@@ -334,6 +357,7 @@ if __name__ == "__main__":
     args = parseargs()
 
     sgd = opt.SGD(lr=args.lr, momentum=0.9, weight_decay=1e-5, dtype=singa_dtype[args.precision])
+
     run(
         0,
         1,

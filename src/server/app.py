@@ -3,9 +3,11 @@ import argparse
 import socket
 
 from singa import tensor
+import sys
 
-from ..proto import interface_pb2 as proto
-from ..proto import utils
+sys.path.append("..")
+from proto import interface_pb2 as proto
+from proto import utils
 
 
 class Server:
@@ -31,7 +33,7 @@ class Server:
         self.pack_format = pack_format
 
     def init_weights(self):
-        self.weights = tensor.random((3, 3))
+        self.weights = {}
 
     def start(self) -> None:
         self.sock.bind((self.host, self.port))
@@ -47,15 +49,22 @@ class Server:
         datas = [proto.WeightsExchange() for _ in range(self.num_clients)]
         for i in range(self.num_clients):
             utils.receive_message(self.conns[i], datas[i], self.pack_format)
-        weights = []
+
+        weights = {}
+        for k in datas[0].weights.keys():
+            weights[k] = []
         for i in range(self.num_clients):
-            weights.append(utils.deserialize_tensor(datas[i].weights))
-        self.weights = sum(weights)
+            for k, v in datas[i].weights.items():
+                weights[k].append(utils.deserialize_tensor(v))
+        
+        for k, v in weights.items():
+            self.weights[k] = sum(v)/self.num_clients        
 
     def push(self) -> None:
         message = proto.WeightsExchange()
         message.op_type = proto.PULL
-        message.weights = utils.serialize_tensor(self.weights)
+        for k, v in self.weights.items():
+            message.weights[k] = utils.serialize_tensor(v)
 
         for conn in self.conns:
             utils.send_message(conn, message, self.pack_format)
@@ -68,6 +77,9 @@ def test(num_clients=1):
     server = Server(num_clients=num_clients)
     server.start()
     server.init_weights()
+
+    # weight initialization
+    server.pull()
 
     max_epoch = 3
     for i in range(max_epoch):
