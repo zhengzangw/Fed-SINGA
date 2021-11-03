@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
+
 import argparse
 import socket
 
-from singa import tensor
-import sys
-
-sys.path.append("..")
-from proto import interface_pb2 as proto
-from proto import utils
+from ..proto import interface_pb2 as proto
+from ..proto import utils
 
 
 class Server:
@@ -38,7 +35,7 @@ class Server:
     def start(self) -> None:
         self.sock.bind((self.host, self.port))
         self.sock.listen()
-        # print(f"Server started.")
+        print("Server started.")
         for _ in range(self.num_clients):
             conn, addr = self.sock.accept()
             rank = utils.receive_int(conn)
@@ -57,9 +54,9 @@ class Server:
         for i in range(self.num_clients):
             for k, v in datas[i].weights.items():
                 weights[k].append(utils.deserialize_tensor(v))
-        
+
         for k, v in weights.items():
-            self.weights[k] = sum(v)/self.num_clients        
+            self.weights[k] = sum(v) / self.num_clients
 
     def push(self) -> None:
         message = proto.WeightsExchange()

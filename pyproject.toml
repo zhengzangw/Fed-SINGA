@@ -46,6 +46,12 @@ profile = "black"
 
 [tool.flake8]
 exclude = ".git,__pycache__,docs/source/conf.py,old,build,dist"
-extend-ignore = "E203, E501, E731"
+extend-ignore = "E203, E501, E731, F401, F811"
 max-complexity = 10
 max-line-length = 99
+
+[tool.coverage.run]
+omit = [
+  "src/client/data/*",
+  "src/proto/interface_pb2.py",
+]

@@ -31,7 +31,7 @@ repos:
     rev: 4.0.1
     hooks:
       - id: flake8
-        args: [--ignore, "E203, E501, E731, F401", --exclude, "*_pb2.py"]
+        args: [--ignore, "E203, E501, E731, F401, F811", --exclude, "*_pb2.py"]
 
   # yaml formatting
   - repo: https://github.com/pre-commit/mirrors-prettier

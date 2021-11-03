@@ -4,11 +4,9 @@ import socket
 
 from singa import tensor
 
-import sys
+from ..proto import interface_pb2 as proto
+from ..proto import utils
 
-sys.path.append("..")
-from proto import interface_pb2 as proto
-from proto import utils
 
 class Client:
     """Client sends and receives protobuf messages"""
@@ -60,6 +58,7 @@ class Client:
 
     def close(self) -> None:
         self.sock.close()
+
 
 # class Client:
 #     """Client sends and receives protobuf messages"""
@@ -123,7 +122,7 @@ def test(global_rank=0):
     # weight initialization
     weights = {}
     for i in range(2):
-        weights['w'+str(i)] = tensor.random((3, 3))
+        weights["w" + str(i)] = tensor.random((3, 3))
 
     client.weights = weights
     client.push()

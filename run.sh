@@ -6,15 +6,13 @@ LOG_PATH=$(date +%Y%m%d_%H%M%S)
 
 trap ctrl_c INT
 
-cd src/server && python server.py &
+python -m src.server.server &
 
-cd src/client
 mkdir -p log/$LOG_PATH
 
 for ((i = 0; i < NUM_CLIENTS; i++)); do
   sleep 1
-  python client.py --model cnn --data mnist -m 100 -i $i -d non-iid > log/$LOG_PATH/log_$i.txt &
+  python -m src.client.client --model cnn --data mnist -m 100 -i $i -d non-iid > log/$LOG_PATH/log_$i.txt &
 done
 
 exit
-

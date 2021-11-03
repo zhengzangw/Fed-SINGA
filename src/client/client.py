@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 import argparse
-import socket
-
-import argparse
 import os
+import socket
 import time
 
 import numpy as np
@@ -11,16 +9,12 @@ from PIL import Image
 from singa import device, opt, tensor
 from tqdm import tqdm
 
-from data import cifar10, cifar100, mnist
-from model import alexnet, cnn, mlp, resnet, xceptionnet
-import onnx
-
-from app import Client
+from .app import Client
+from .data import cifar10, cifar100, mnist
+from .model import alexnet, cnn, mlp, resnet, xceptionnet
 
 np_dtype = {"float16": np.float16, "float32": np.float32}
 singa_dtype = {"float16": tensor.float16, "float32": tensor.float32}
-
-
 
 
 # Data augmentation
@@ -151,7 +145,7 @@ def run(
     precision="float32",
 ):
 
-    client = Client(global_rank = device_id)
+    client = Client(global_rank=device_id)
     client.start()
     client.init_weights()
 
@@ -161,7 +155,7 @@ def run(
 
     # Prepare dataset
     train_x, train_y, val_x, val_y, num_classes = get_data(data, data_dist, device_id)
-    train_x_, train_y_, val_x_, val_y_, num_classes_ = get_data(data, 'iid', device_id)
+    train_x_, train_y_, val_x_, val_y_, num_classes_ = get_data(data, "iid", device_id)
 
     num_channels = train_x.shape[1]
     image_size = train_x.shape[2]
@@ -233,7 +227,7 @@ def run(
         if epoch > 0:
             client.pull()
             model.set_states(client.weights)
-            
+
         if global_rank == 0:
             print("Starting Epoch %d:" % (epoch))
 
@@ -256,9 +250,9 @@ def run(
             out_test = model(tx)
             test_correct += accuracy(tensor.to_numpy(out_test), y)
 
-        if DIST:
-            # Reduce the evaulation accuracy from multiple devices
-            test_correct = reduce_variable(test_correct, sgd, reducer)
+        # if DIST:
+        #     # Reduce the evaulation accuracy from multiple devices
+        #     test_correct = reduce_variable(test_correct, sgd, reducer)
 
         # Output the evaluation accuracy
         if global_rank == 0:
@@ -304,7 +298,7 @@ def run(
 
         client.weights = model.get_states()
         client.push()
-            
+
     dev.PrintTimeProfiling()
 
 
