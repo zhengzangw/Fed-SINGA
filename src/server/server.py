@@ -30,21 +30,28 @@ def test(num_clients=1):
 
     server.close()
 
+def main(num_clients=1, max_epoch=10):
+    server = Server(num_clients=num_clients)
+    server.start()
+    server.init_weights()
 
+    for i in range(max_epoch):
+        print(f"On epoch {i}:")
+        if i > 0 :
+            # Push to Clients
+            server.push()
 
-server = Server(num_clients=10)
-server.start()
-server.init_weights()
+        # Collects from Clients
+        server.pull()
 
-max_epoch = 50
-for i in range(max_epoch):
-    print(f"On epoch {i}:")
-    if i > 0 :
-        # Push to Clients
-        server.push()
+    server.close()
 
-    # Collects from Clients
-    server.pull()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--num_clients", default=1, type=int)
+    parser.add_argument("--max_epoch", default=10, type=int)
+    args = parser.parse_args()
 
-server.close()
+    main(args.num_clients, args.max_epoch)
+    
 
