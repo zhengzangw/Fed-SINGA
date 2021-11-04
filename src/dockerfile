@@ -1,2 +1,0 @@
-FROM zhengzangw/fedsinga:latest
-WORKDIR /app

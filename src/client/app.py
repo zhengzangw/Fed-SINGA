@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse
+
 import socket
 
 from singa import tensor
@@ -9,18 +9,28 @@ from ..proto import utils
 
 
 class Client:
-    """Client sends and receives protobuf messages"""
+    """Client sends and receives protobuf messages.
+
+    Create and start the server, then use pull and push to communicate with the server.
+
+    Attributes:
+        global_rank (int): The rank in training process.
+        host (str): Host address of the server.
+        port (str): Port of the server.
+        sock (socket.socket): Socket of the client.
+        weights (Dict[Any]): Weights stored locally.
+    """
 
     def __init__(
         self,
+        global_rank: int = 0,
         host: str = "127.0.0.1",
         port: str = 1234,
-        pack_format: str = "Q",
-        global_rank: int = 1,
     ) -> None:
         """Class init method
 
         Args:
+            global_rank (int, optional): The rank in training process. Defaults to 0.
             host (str, optional): Host ip address. Defaults to '127.0.0.1'.
             port (str, optional): Port. Defaults to 1234.
         """
@@ -30,124 +40,46 @@ class Client:
 
         self.global_rank = global_rank
 
-        self.pack_format = pack_format
+        self.weights = {}
 
-    def init_weights(self):
-        self.weights = None
-
-    def start(self) -> None:
+    def __start_connection(self) -> None:
+        """Start the network connection to server."""
         self.sock.connect((self.host, self.port))
+
+    def __start_rank_pairing(self) -> None:
+        """Sending global rank to server"""
         utils.send_int(self.sock, self.global_rank)
 
+    def start(self) -> None:
+        """Start the client.
+
+        This method will first connect to the server. Then global rank is sent to the server.
+        """
+        self.__start_connection()
+        self.__start_rank_pairing()
         print(f"[Client {self.global_rank}] Connect to {self.host}:{self.port}")
 
-    def pull(self):
-        message = proto.WeightsExchange()
-        utils.receive_message(self.sock, message, self.pack_format)
-        weights = {}
-        for k, v in message.weights.items():
-            weights[k] = utils.deserialize_tensor(v)
-        self.weights = weights
-
-    def push(self) -> None:
-        message = proto.WeightsExchange()
-        message.op_type = proto.PUSH
-        for k, v in self.weights.items():
-            message.weights[k] = utils.serialize_tensor(v)
-        utils.send_message(self.sock, message, self.pack_format)
-
     def close(self) -> None:
+        """Close the server."""
         self.sock.close()
 
+    def pull(self) -> None:
+        """Client pull weights from server.
 
-# class Client:
-#     """Client sends and receives protobuf messages"""
+        Namely server push weights from clients.
+        """
+        message = proto.WeightsExchange()
+        utils.receive_message(self.sock, message)
+        for k, v in message.weights.items():
+            self.weights[k] = utils.deserialize_tensor(v)
 
-#     def __init__(
-#         self,
-#         host: str = "127.0.0.1",
-#         port: str = 1234,
-#         pack_format: str = "Q",
-#         global_rank: int = 1,
-#     ) -> None:
-#         """Class init method
+    def push(self) -> None:
+        """Client push weights to server.
 
-#         Args:
-#             host (str, optional): Host ip address. Defaults to '127.0.0.1'.
-#             port (str, optional): Port. Defaults to 1234.
-#         """
-#         self.host = host
-#         self.port = port
-#         self.sock = socket.socket()
-
-#         self.global_rank = global_rank
-
-#         self.pack_format = pack_format
-
-#     def init_weights(self):
-#         self.weights = None
-
-#     def start(self) -> None:
-#         self.sock.connect((self.host, self.port))
-#         utils.send_int(self.sock, self.global_rank)
-
-#         print(f"[Client {self.global_rank}] Connect to {self.host}:{self.port}")
-
-#     def pull(self):
-#         message = proto.WeightsExchange()
-#         utils.receive_message(self.sock, message, self.pack_format)
-#         weights = {}
-#         for k, v in message.weights.items():
-#             weights[k] = utils.deserialize_tensor(v)
-#         # weights = utils.deserialize_tensor(message.weights)
-#         self.weights = weights
-
-#     def push(self) -> None:
-#         message = proto.WeightsExchange()
-#         message.op_type = proto.PUSH
-#         for k, v in self.weights.items():
-#             message.weights[k] = utils.serialize_tensor(v)
-#         # message.weights = utils.serialize_tensor(self.weights)
-#         utils.send_message(self.sock, message, self.pack_format)
-
-#     def close(self) -> None:
-#         self.sock.close()
-
-
-def test(global_rank=0):
-    client = Client(global_rank=global_rank)
-    client.start()
-    client.init_weights()
-
-    # weight initialization
-    weights = {}
-    for i in range(2):
-        weights["w" + str(i)] = tensor.random((3, 3))
-
-    client.weights = weights
-    client.push()
-    max_epoch = 3
-    for i in range(max_epoch):
-        print(f"On epoch {i}:")
-
-        # Pull from Server
-        client.pull()
-        print(client.weights)
-
-        # Update locally
-        for k, v in client.weights.items():
-            client.weights[k] += global_rank + 1
-
-        # Push to Server
-        client.push()
-        print(client.weights)
-
-    client.close()
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--global_rank", default=0, type=int)
-    args = parser.parse_args()
-
-    test(args.global_rank)
+        Namely server pull weights from clients.
+        """
+        message = proto.WeightsExchange()
+        message.op_type = proto.GATHER
+        for k, v in self.weights.items():
+            message.weights[k] = utils.serialize_tensor(v)
+        utils.send_message(self.sock, message)

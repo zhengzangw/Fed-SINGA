@@ -1,0 +1,22 @@
+version: "3.3"
+
+services:
+  server:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode server
+
+  client_0:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client

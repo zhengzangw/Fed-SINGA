@@ -1,0 +1,121 @@
+version: "3.3"
+
+services:
+  server:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode server --num_client 10
+
+  client_0:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 0
+
+  client_1:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 1
+
+  client_2:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 2
+
+  client_3:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 3
+
+  client_4:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 4
+
+  client_5:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 5
+
+  client_6:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 6
+
+  client_7:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 7
+
+  client_8:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 8
+
+  client_9:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank 9

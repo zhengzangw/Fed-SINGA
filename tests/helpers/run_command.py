@@ -1,15 +1,15 @@
+import subprocess
+from threading import Thread
 from typing import List
 
-import pytest
-import sh
 
-
-def run_command(command: List[str]):
+def run_command(command: str, thread: bool = False):
     """Default method for executing shell commands with pytest."""
-    msg = None
-    try:
-        sh.python(command)
-    except sh.ErrorReturnCode as e:
-        msg = e.stderr.decode()
-    if msg:
-        pytest.fail(msg=msg)
+    command = command.split(" ")
+    if thread:
+        t = Thread(target=subprocess.run, args=(command,))
+        t.start()
+        return t
+    else:
+        subprocess.run(command)
+        return None

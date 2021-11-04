@@ -3,8 +3,8 @@ package interface;
 
 enum Op {
   DEFAULT = 0;
-  PUSH = 1;
-  PULL = 2;
+  SCATTER = 1;
+  GATHER = 2;
 }
 
 message WeightsExchange {

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import os
 
 server_fmt = """
 version: "3.3"
@@ -7,24 +8,24 @@ version: "3.3"
 services:
   server:
     build:
-      context: ./
-      dockerfile: ./src/dockerfile
+      context: ../
+      dockerfile: ./dockerfile
     network_mode: host
     volumes:
-      - ./:/app
-    command: python -m src.server.app --num_client {:d}
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode server --num_client {:d}
 """
 client_fmt = """
   client_{:d}:
     build:
-      context: ./
-      dockerfile: ./src/dockerfile
+      context: ../
+      dockerfile: ./dockerfile
     network_mode: host
     depends_on:
       - server
     volumes:
-      - ./:/app
-    command: python -m src.client.app --global_rank {:d}
+      - ../:/app
+    command: python -m tests.helpers.start_app --mode client --global_rank {:d}
 """
 
 
@@ -34,6 +35,8 @@ def main(args):
         output_txt += client_fmt.format(i, i)
 
     file_name = f"docker-compose.client_{args.client}.yml"
+    dir_name = os.path.dirname(__file__)
+    file_name = os.path.join(dir_name, file_name)
     with open(file_name, "w") as f:
         f.write(output_txt)
 
