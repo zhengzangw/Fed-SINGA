@@ -8,6 +8,7 @@ from singa import tensor
 from src.proto import interface_pb2
 from src.proto.utils import (
     deserialize_tensor,
+    parseargs,
     receive_all,
     receive_int,
     receive_message,
@@ -53,3 +54,8 @@ def test_serialize():
     x = tensor.random((3, 3))
     y = deserialize_tensor(serialize_tensor(x))
     assert x == y
+
+
+def test_parseargs():
+    args = parseargs("")
+    assert args.model == "mlp"

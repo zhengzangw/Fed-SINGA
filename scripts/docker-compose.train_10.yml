@@ -1,0 +1,121 @@
+version: "3.3"
+
+services:
+  server:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    volumes:
+      - ../:/app
+    command: python -m src.server.main -m 10
+
+  client_0:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 0
+
+  client_1:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 1
+
+  client_2:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 2
+
+  client_3:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 3
+
+  client_4:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 4
+
+  client_5:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 5
+
+  client_6:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 6
+
+  client_7:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 7
+
+  client_8:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 8
+
+  client_9:
+    build:
+      context: ../
+      dockerfile: ./dockerfile
+    network_mode: host
+    depends_on:
+      - server
+    volumes:
+      - ../:/app
+    command: python -m src.client.main --model cnn --data mnist -m 10 -d non-iid -i 9

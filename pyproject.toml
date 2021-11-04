@@ -53,5 +53,6 @@ max-line-length = 99
 [tool.coverage.run]
 omit = [
   "src/client/data/*",
+  "src/client/model/*",
   "src/proto/interface_pb2.py",
 ]

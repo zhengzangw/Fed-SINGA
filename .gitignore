@@ -1,6 +1,7 @@
 # == Custom ==
 checkpoint/*.zip
 *.csv
+*.gz
 log/2021*
 
 # Byte-compiled / optimized / DLL files

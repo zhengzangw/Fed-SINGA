@@ -35,10 +35,10 @@ def check_dataset_exist(dirpath):
 
 
 def load_dataset():
-    train_x_path = "/tmp/train-images-idx3-ubyte.gz"
-    train_y_path = "/tmp/train-labels-idx1-ubyte.gz"
-    valid_x_path = "/tmp/t10k-images-idx3-ubyte.gz"
-    valid_y_path = "/tmp/t10k-labels-idx1-ubyte.gz"
+    train_x_path = "./data/train-images-idx3-ubyte.gz"
+    train_y_path = "./data/train-labels-idx1-ubyte.gz"
+    valid_x_path = "./data/t10k-images-idx3-ubyte.gz"
+    valid_y_path = "./data/t10k-labels-idx1-ubyte.gz"
 
     train_x = read_image_file(check_dataset_exist(train_x_path)).astype(np.float32)
     train_y = read_label_file(check_dataset_exist(train_y_path)).astype(np.float32)

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-import argparse
-import os
-import socket
+
 import time
 
 import numpy as np
@@ -9,6 +7,7 @@ from PIL import Image
 from singa import device, opt, tensor
 from tqdm import tqdm
 
+from ..proto.utils import parseargs
 from .app import Client
 from .data import cifar10, cifar100, mnist
 from .model import alexnet, cnn, mlp, resnet, xceptionnet
@@ -147,7 +146,6 @@ def run(
 
     client = Client(global_rank=device_id)
     client.start()
-    client.init_weights()
 
     dev = device.get_default_device()
     dev.SetRandSeed(0)
@@ -300,51 +298,6 @@ def run(
         client.push()
 
     dev.PrintTimeProfiling()
-
-
-def parseargs():
-    # Use argparse to get command config: max_epoch, model, data, etc., for single gpu training
-    parser = argparse.ArgumentParser(description="Training using the autograd and graph.")
-    parser.add_argument(
-        "--model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="mlp"
-    )
-    parser.add_argument("--data", choices=["mnist", "cifar10", "cifar100"], default="mnist")
-    parser.add_argument("-p", choices=["float32", "float16"], default="float32", dest="precision")
-    parser.add_argument(
-        "-m", "--max-epoch", default=10, type=int, help="maximum epochs", dest="max_epoch"
-    )
-    parser.add_argument(
-        "-b", "--batch-size", default=64, type=int, help="batch size", dest="batch_size"
-    )
-    parser.add_argument(
-        "-l", "--learning-rate", default=0.005, type=float, help="initial learning rate", dest="lr"
-    )
-    # Determine which gpu to use
-    parser.add_argument(
-        "-i", "--device-id", default=0, type=int, help="which GPU to use", dest="device_id"
-    )
-    parser.add_argument(
-        "-g",
-        "--disable-graph",
-        default="True",
-        action="store_false",
-        help="disable graph",
-        dest="graph",
-    )
-    parser.add_argument(
-        "-v", "--log-verbosity", default=0, type=int, help="logging verbosity", dest="verbosity"
-    )
-    parser.add_argument(
-        "-d",
-        "--data-distribution",
-        choices=["iid", "non-iid"],
-        default="iid",
-        help="data distribution",
-        dest="data_dist",
-    )
-
-    args = parser.parse_args()
-    return args
 
 
 if __name__ == "__main__":

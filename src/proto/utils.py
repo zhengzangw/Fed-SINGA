@@ -1,3 +1,4 @@
+import argparse
 import pickle
 import socket
 import struct
@@ -107,3 +108,56 @@ def deserialize_tensor(t: bytes) -> tensor.Tensor:
         tensor.Tensor: The singa tensor.
     """
     return tensor.from_numpy(pickle.loads(t))
+
+
+def parseargs(arg=None) -> argparse.Namespace:
+    """Parse command line arguments
+
+    Returns:
+        argparse.Namespace: parsed arguments
+    """
+
+    parser = argparse.ArgumentParser(description="Training using the autograd and graph.")
+    parser.add_argument(
+        "--model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="mlp"
+    )
+    parser.add_argument("--data", choices=["mnist", "cifar10", "cifar100"], default="mnist")
+    parser.add_argument("-p", choices=["float32", "float16"], default="float32", dest="precision")
+    parser.add_argument(
+        "-m", "--max-epoch", default=10, type=int, help="maximum epochs", dest="max_epoch"
+    )
+    parser.add_argument(
+        "-b", "--batch-size", default=64, type=int, help="batch size", dest="batch_size"
+    )
+    parser.add_argument(
+        "-l", "--learning-rate", default=0.005, type=float, help="initial learning rate", dest="lr"
+    )
+    # Determine which gpu to use
+    parser.add_argument(
+        "-i", "--device-id", default=0, type=int, help="which GPU to use", dest="device_id"
+    )
+    parser.add_argument(
+        "-g",
+        "--disable-graph",
+        default="True",
+        action="store_false",
+        help="disable graph",
+        dest="graph",
+    )
+    parser.add_argument(
+        "-v", "--log-verbosity", default=0, type=int, help="logging verbosity", dest="verbosity"
+    )
+    parser.add_argument(
+        "-d",
+        "--data-distribution",
+        choices=["iid", "non-iid"],
+        default="iid",
+        help="data distribution",
+        dest="data_dist",
+    )
+    parser.add_argument("--num_clients", default=10, type=int)
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", default=1234)
+
+    args = parser.parse_args(arg)
+    return args
