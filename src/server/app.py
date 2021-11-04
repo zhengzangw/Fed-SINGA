@@ -30,6 +30,7 @@ class Server:
         num_clients=1,
         host: str = "127.0.0.1",
         port: str = 1234,
+        secure: bool = False,
     ) -> None:
         """Class init method
 
@@ -37,10 +38,12 @@ class Server:
             num_clients (int, optional): Number of clients in training.
             host (str, optional): Host ip address. Defaults to '127.0.0.1'.
             port (str, optional): Port. Defaults to 1234.
+            secure (bool, optional): Whether use secure aggregation. Defaults to False.
         """
         self.num_clients = num_clients
         self.host = host
         self.port = port
+        self.secure = secure
 
         self.sock = socket.socket()
         self.conns = [None] * num_clients
@@ -62,7 +65,31 @@ class Server:
             self.conns[rank] = conn
             self.addrs[rank] = addr
             print(f"[Server] Connected by {addr} [global_rank {rank}]")
+
         assert None not in self.conns
+
+    def __init_secure_aggregation(self) -> None:
+        serialized_public_keys = [None] * self.num_clients
+        assert self.num_clients > 1
+
+        for i in range(self.num_clients):
+            # receive public keys
+            message = proto.WeightsExchange()
+            message = utils.receive_message(self.conns[i], message)
+            serialized_public_keys[i] = message.weights["pub"]
+            # send number of clients
+            utils.send_int(self.conns[i], self.num_clients)
+        assert None not in serialized_public_keys
+
+        # send all public keys
+        message = proto.WeightsExchange()
+        message.op_type = proto.SCATTER
+        for i in range(self.num_clients):
+            message.weights[str(i)] = serialized_public_keys[i]
+        for i in range(self.num_clients):
+            utils.send_message(self.conns[i], message)
+
+        print("[Server] Secure aggregation enabled.")
 
     def start(self) -> None:
         """Start the server.
@@ -73,6 +100,8 @@ class Server:
         """
         self.__start_connection()
         self.__start_rank_pairing()
+        if self.secure:
+            self.__init_secure_aggregation()
 
     def close(self) -> None:
         """Close the server."""
@@ -101,7 +130,7 @@ class Server:
         weights = defaultdict(list)
         # receive weights sequentially
         for i in range(self.num_clients):
-            utils.receive_message(self.conns[i], datas[i])
+            datas[i] = utils.receive_message(self.conns[i], datas[i])
             for k, v in datas[i].weights.items():
                 weights[k].append(utils.deserialize_tensor(v))
         # aggregation

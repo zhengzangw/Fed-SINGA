@@ -10,7 +10,7 @@ from src.server.app import Server
 from ..helpers.conftest import server_client_single
 
 
-def test_start() -> Tuple[Server, Client]:
+def test_start():
     server = Server(num_clients=1)
     client = Client(global_rank=0)
     thread_s = Thread(target=server.start)

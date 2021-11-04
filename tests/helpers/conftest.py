@@ -53,3 +53,18 @@ def server_client_single() -> Tuple[Server, Client]:
     yield (server, client)
     client.close()
     server.close()
+
+
+@pytest.fixture(scope="module")
+def server_client_single() -> Tuple[Server, Client]:
+    server = Server(num_clients=1)
+    client = Client(global_rank=0)
+    thread_s = Thread(target=server.start)
+    thread_s.start()
+    thread_c = Thread(target=client.start)
+    thread_c.start()
+    thread_s.join()
+    thread_c.join()
+    yield (server, client)
+    client.close()
+    server.close()

@@ -1,5 +1,3 @@
-from time import sleep
-
 import pytest
 
 from src.server.app import Server
