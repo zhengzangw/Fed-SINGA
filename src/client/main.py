@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
 import time
-
+from datetime import datetime
 import numpy as np
 from PIL import Image
 from singa import device, opt, tensor
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter   
+import os
 
 from ..proto.utils import parseargs
 from .app import Client
@@ -14,7 +16,6 @@ from .model import alexnet, cnn, mlp, resnet, xceptionnet
 
 np_dtype = {"float16": np.float16, "float32": np.float32}
 singa_dtype = {"float16": tensor.float16, "float32": tensor.float32}
-
 
 # Data augmentation
 def augmentation(x, batch_size):
@@ -136,6 +137,7 @@ def run(
     model,
     data,
     data_dist,
+    secure,
     sgd,
     graph,
     verbosity,
@@ -144,7 +146,7 @@ def run(
     precision="float32",
 ):
 
-    client = Client(global_rank=device_id)
+    client = Client(global_rank=device_id, secure=secure)
     client.start()
 
     dev = device.get_default_device()
@@ -205,17 +207,11 @@ def run(
     model.compile([tx], is_train=True, use_graph=graph, sequential=sequential)
     dev.SetVerbosity(verbosity)
 
-    # if data_dist == "non-iid":
-    #     celtral_model_path = "checkpoint/central_model.zip"
-    #     if os.path.exists(celtral_model_path):
-    #         print("loading model from " + celtral_model_path)
-    #         model.load_states(fpath=celtral_model_path)
-    #     else:
-    #     	# Pull from Server
-    #     	client.pull()
-    #         print("initiating a central model...")
-    #         model.save_states(celtral_model_path)
-    #         return
+    
+    timestamp = "{0:%Y-%m-%dT%H-%M-%S}".format(datetime.now())
+    tensorboard_path = os.path.join('log', str(device_id)+'_'+timestamp)
+    writer = SummaryWriter(tensorboard_path)
+
 
     # Training and evaluation loop
     for epoch in range(max_epoch):
@@ -229,12 +225,8 @@ def run(
         if global_rank == 0:
             print("Starting Epoch %d:" % (epoch))
 
-        # Training phase
-        train_correct = np.zeros(shape=[1], dtype=np.float32)
-        test_correct = np.zeros(shape=[1], dtype=np.float32)
-        train_loss = np.zeros(shape=[1], dtype=np.float32)
-
         # Evaluation phase
+        test_correct = np.zeros(shape=[1], dtype=np.float32)
         model.eval()
         for b in range(num_val_batch):
             x = val_x[b * batch_size : (b + 1) * batch_size]
@@ -247,10 +239,9 @@ def run(
             ty.copy_from_numpy(y)
             out_test = model(tx)
             test_correct += accuracy(tensor.to_numpy(out_test), y)
-
-        # if DIST:
-        #     # Reduce the evaulation accuracy from multiple devices
-        #     test_correct = reduce_variable(test_correct, sgd, reducer)
+        if DIST:
+            # Reduce the evaulation accuracy from multiple devices
+            test_correct = reduce_variable(test_correct, sgd, reducer)
 
         # Output the evaluation accuracy
         if global_rank == 0:
@@ -261,38 +252,79 @@ def run(
                     time.time() - start_time,
                 )
             )
+            writer.add_scalar('test/accuracy', test_correct / (num_val_batch * batch_size * world_size), global_step=epoch)
 
-        model.train()
-        for b in tqdm(range(num_train_batch)):
-            # Generate the patch data in this iteration
-            x = train_x[idx[b * batch_size : (b + 1) * batch_size]]
-            if model.dimension == 4:
-                x = augmentation(x, batch_size)
-                if image_size != model.input_size:
-                    x = resize_dataset(x, model.input_size)
-            x = x.astype(np_dtype[precision])
-            y = train_y[idx[b * batch_size : (b + 1) * batch_size]]
+        # Training phase
+        max_inner_epoch = 3
+        for inner_epoch in range(max_inner_epoch):
+            train_correct = np.zeros(shape=[1], dtype=np.float32)
+            train_loss = np.zeros(shape=[1], dtype=np.float32)
+            test_correct = np.zeros(shape=[1], dtype=np.float32)
 
-            # Copy the patch data into input tensors
-            tx.copy_from_numpy(x)
-            ty.copy_from_numpy(y)
+            model.train()
+            for b in tqdm(range(num_train_batch)):
+                # Generate the patch data in this iteration
+                x = train_x[idx[b * batch_size : (b + 1) * batch_size]]
+                if model.dimension == 4:
+                    x = augmentation(x, batch_size)
+                    if image_size != model.input_size:
+                        x = resize_dataset(x, model.input_size)
+                x = x.astype(np_dtype[precision])
+                y = train_y[idx[b * batch_size : (b + 1) * batch_size]]
 
-            # Train the model
-            out, loss = model(tx, ty, dist_option, spars)
-            train_correct += accuracy(tensor.to_numpy(out), y)
-            train_loss += tensor.to_numpy(loss)[0]
+                # Copy the patch data into input tensors
+                tx.copy_from_numpy(x)
+                ty.copy_from_numpy(y)
 
-        if DIST:
-            # Reduce the evaluation accuracy and loss from multiple devices
-            reducer = tensor.Tensor((1,), dev, tensor.float32)
-            train_correct = reduce_variable(train_correct, sgd, reducer)
-            train_loss = reduce_variable(train_loss, sgd, reducer)
+                # Train the model
+                out, loss = model(tx, ty, dist_option, spars)
+                train_correct += accuracy(tensor.to_numpy(out), y)
+                train_loss += tensor.to_numpy(loss)[0]
 
-        if global_rank == 0:
-            print(
-                "Training loss = %f, training accuracy = %f"
-                % (train_loss, train_correct / (num_train_batch * batch_size * world_size))
-            )
+            if DIST:
+                # Reduce the evaluation accuracy and loss from multiple devices
+                reducer = tensor.Tensor((1,), dev, tensor.float32)
+                train_correct = reduce_variable(train_correct, sgd, reducer)
+                train_loss = reduce_variable(train_loss, sgd, reducer)
+
+            if global_rank == 0:
+                train_acc = train_correct / (num_train_batch * batch_size * world_size)
+                print(
+                    "[inner epoch %d] Training loss = %f, training accuracy = %f"
+                    % (inner_epoch, train_loss, train_acc),
+                    flush=True
+                )
+                cur_step = epoch*max_inner_epoch + inner_epoch
+                cur_epoch = float(cur_step)/float(max_inner_epoch)
+                writer.add_scalar('train/step/loss', train_loss, global_step=cur_step)
+                writer.add_scalar('train/epoch/loss', train_loss, global_step=cur_epoch)
+                writer.add_scalar('train/step/accuracy', train_acc, global_step=cur_step)
+                writer.add_scalar('train/epoch/accuracy', train_acc, global_step=cur_epoch)
+                 # Evaluation phase
+            
+            model.eval()
+            for b in range(num_val_batch):
+                x = val_x[b * batch_size:(b + 1) * batch_size]
+                if model.dimension == 4:
+                    if (image_size != model.input_size):
+                        x = resize_dataset(x, model.input_size)
+                x = x.astype(np_dtype[precision])
+                y = val_y[b * batch_size:(b + 1) * batch_size]
+                tx.copy_from_numpy(x)
+                ty.copy_from_numpy(y)
+                out_test = model(tx)
+                test_correct += accuracy(tensor.to_numpy(out_test), y)
+
+            if DIST:
+                # Reduce the evaulation accuracy from multiple devices
+                test_correct = reduce_variable(test_correct, sgd, reducer)
+
+            # Output the evaluation accuracy
+            if global_rank == 0:
+                print('[inner epoch %d] Evaluation accuracy = %f, Elapsed Time = %fs' %
+                      (inner_epoch, test_correct / (num_val_batch * batch_size * world_size),
+                       time.time() - start_time),
+                      flush=True)
 
         client.weights = model.get_states()
         client.push()
@@ -314,6 +346,7 @@ if __name__ == "__main__":
         args.model,
         args.data,
         args.data_dist,
+        args.secure,
         sgd,
         args.graph,
         args.verbosity,

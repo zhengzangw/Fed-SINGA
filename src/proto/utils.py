@@ -155,9 +155,18 @@ def parseargs(arg=None) -> argparse.Namespace:
         help="data distribution",
         dest="data_dist",
     )
+    parser.add_argument(
+        "-s",
+        "--secure-agg",
+        choices=[True, False],
+        default=False,
+        type=bool,
+        help="secure aggregation",
+        dest="secure",
+    )
     parser.add_argument("--num_clients", default=10, type=int)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", default=1234)
-
+    
     args = parser.parse_args(arg)
     return args
