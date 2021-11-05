@@ -6,7 +6,7 @@
 # Fed-SINGA
 
 [![SINGA](https://img.shields.io/badge/SINGA-803300?logoColor=white)](https://singa.apache.org/)
-![coverage](https://img.shields.io/badge/coverage-25%-yellowgreen)
+![coverage](https://img.shields.io/badge/coverage-25%25-yellowgreen)
 ![license](https://img.shields.io/badge/license-Apache-green)
 
 </div>
