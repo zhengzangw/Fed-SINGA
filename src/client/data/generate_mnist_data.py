@@ -16,8 +16,8 @@ def split(path="."):
         val = val_x[np.where(val_y == i)]
         train = train.reshape(len(train), 28 * 28)
         val = val.reshape(len(val), 28 * 28)
-        fn1 = "mnist_train_" + str(i) + ".csv"
-        fn2 = "mnist_val_" + str(i) + ".csv"
+        fn1 = "data/cifar10/train_" + str(i) + ".csv"
+        fn2 = "data/cifar10/val_" + str(i) + ".csv"
         np.savetxt(os.path.join(path, fn1), train, delimiter=",")
         np.savetxt(os.path.join(path, fn2), val, delimiter=",")
 
