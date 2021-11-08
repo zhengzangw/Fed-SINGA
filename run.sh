@@ -7,7 +7,7 @@ NUM_EPOCH=3
 
 LOG_PATH=$(date +%Y%m%d_%H%M%S)
 
-python -m src.server.main -m $NUM_EPOCH -s True &
+python -m src.server.main -m $NUM_EPOCH -s True --num_clients $NUM_CLIENTS &
 
 mkdir -p log/$LOG_PATH
 

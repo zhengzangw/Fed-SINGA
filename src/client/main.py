@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
+# modified from https://github.com/apache/singa/blob/master/examples/cnn/train_cnn.py
+
 import time
 from datetime import datetime
 import numpy as np
 from PIL import Image
 from singa import device, opt, tensor
 from tqdm import tqdm
-from torch.utils.tensorboard import SummaryWriter   
 import os
 
 from ..proto.utils import parseargs
 from .app import Client
-from .data import cifar10, cifar100, mnist
+from .data import cifar10, cifar100, mnist, bank
 from .model import alexnet, cnn, mlp, resnet, xceptionnet
 
 np_dtype = {"float16": np.float16, "float32": np.float32}
@@ -109,6 +110,8 @@ def get_data(data, data_dist="iid", device_id=None):
         else:
             train_x, train_y, val_x, val_y = load_mnist_dataset(device_id)
         num_classes = 10
+    elif data == 'bank':
+        train_x, train_y, val_x, val_y, num_classes = bank.load(device_id)
     return train_x, train_y, val_x, val_y, num_classes
 
 
@@ -146,6 +149,7 @@ def run(
     precision="float32",
 ):
 
+    # Connect to server
     client = Client(global_rank=device_id, secure=secure)
     client.start()
 
@@ -155,16 +159,17 @@ def run(
 
     # Prepare dataset
     train_x, train_y, val_x, val_y, num_classes = get_data(data, data_dist, device_id)
-    train_x_, train_y_, val_x_, val_y_, num_classes_ = get_data(data, "iid", device_id)
 
     num_channels = train_x.shape[1]
-    image_size = train_x.shape[2]
     data_size = np.prod(train_x.shape[1 : train_x.ndim]).item()
 
     # Prepare model
     model = get_model(
         model, num_channels=num_channels, num_classes=num_classes, data_size=data_size
     )
+
+    if model.dimension == 4:
+        image_size = train_x.shape[2]
 
     # For distributed training, sequential has better performance
     if hasattr(sgd, "communicator"):
@@ -207,17 +212,9 @@ def run(
     model.compile([tx], is_train=True, use_graph=graph, sequential=sequential)
     dev.SetVerbosity(verbosity)
 
-    
-    timestamp = "{0:%Y-%m-%dT%H-%M-%S}".format(datetime.now())
-    tensorboard_path = os.path.join('log', str(device_id)+'_'+timestamp)
-    writer = SummaryWriter(tensorboard_path)
-
 
     # Training and evaluation loop
     for epoch in range(max_epoch):
-        start_time = time.time()
-        np.random.shuffle(idx)
-
         if epoch > 0:
             client.pull()
             model.set_states(client.weights)
@@ -225,37 +222,11 @@ def run(
         if global_rank == 0:
             print("Starting Epoch %d:" % (epoch))
 
-        # Evaluation phase
-        test_correct = np.zeros(shape=[1], dtype=np.float32)
-        model.eval()
-        for b in range(num_val_batch):
-            x = val_x[b * batch_size : (b + 1) * batch_size]
-            if model.dimension == 4:
-                if image_size != model.input_size:
-                    x = resize_dataset(x, model.input_size)
-            x = x.astype(np_dtype[precision])
-            y = val_y[b * batch_size : (b + 1) * batch_size]
-            tx.copy_from_numpy(x)
-            ty.copy_from_numpy(y)
-            out_test = model(tx)
-            test_correct += accuracy(tensor.to_numpy(out_test), y)
-        if DIST:
-            # Reduce the evaulation accuracy from multiple devices
-            test_correct = reduce_variable(test_correct, sgd, reducer)
-
-        # Output the evaluation accuracy
-        if global_rank == 0:
-            print(
-                "Evaluation accuracy = %f, Elapsed Time = %fs"
-                % (
-                    test_correct / (num_val_batch * batch_size * world_size),
-                    time.time() - start_time,
-                )
-            )
-            writer.add_scalar('test/accuracy', test_correct / (num_val_batch * batch_size * world_size), global_step=epoch)
+        start_time = time.time()
+        np.random.shuffle(idx)
 
         # Training phase
-        max_inner_epoch = 3
+        max_inner_epoch = 1
         for inner_epoch in range(max_inner_epoch):
             train_correct = np.zeros(shape=[1], dtype=np.float32)
             train_loss = np.zeros(shape=[1], dtype=np.float32)
@@ -294,14 +265,8 @@ def run(
                     % (inner_epoch, train_loss, train_acc),
                     flush=True
                 )
-                cur_step = epoch*max_inner_epoch + inner_epoch
-                cur_epoch = float(cur_step)/float(max_inner_epoch)
-                writer.add_scalar('train/step/loss', train_loss, global_step=cur_step)
-                writer.add_scalar('train/epoch/loss', train_loss, global_step=cur_epoch)
-                writer.add_scalar('train/step/accuracy', train_acc, global_step=cur_step)
-                writer.add_scalar('train/epoch/accuracy', train_acc, global_step=cur_epoch)
-                 # Evaluation phase
-            
+           
+            # Evaluation phase
             model.eval()
             for b in range(num_val_batch):
                 x = val_x[b * batch_size:(b + 1) * batch_size]
@@ -334,9 +299,7 @@ def run(
 
 if __name__ == "__main__":
     args = parseargs()
-
     sgd = opt.SGD(lr=args.lr, momentum=0.9, weight_decay=1e-5, dtype=singa_dtype[args.precision])
-
     run(
         0,
         1,
@@ -346,7 +309,7 @@ if __name__ == "__main__":
         args.model,
         args.data,
         args.data_dist,
-        args.secure,
+        args.secure=="True",
         sgd,
         args.graph,
         args.verbosity,

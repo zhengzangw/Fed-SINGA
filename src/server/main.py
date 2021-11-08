@@ -6,7 +6,7 @@ from .app import Server
 if __name__ == "__main__":
     args = parseargs()
 
-    server = Server(num_clients=args.num_clients, host=args.host, port=args.port, secure=args.secure)
+    server = Server(num_clients=args.num_clients, host=args.host, port=args.port, secure=(args.secure=="True"))
     server.start()
 
     for i in range(args.max_epoch):

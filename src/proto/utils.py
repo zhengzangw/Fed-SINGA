@@ -121,7 +121,7 @@ def parseargs(arg=None) -> argparse.Namespace:
     parser.add_argument(
         "--model", choices=["cnn", "resnet", "xceptionnet", "mlp", "alexnet"], default="mlp"
     )
-    parser.add_argument("--data", choices=["mnist", "cifar10", "cifar100"], default="mnist")
+    parser.add_argument("--data", choices=["mnist", "cifar10", "cifar100", "bank"], default="mnist")
     parser.add_argument("-p", choices=["float32", "float16"], default="float32", dest="precision")
     parser.add_argument(
         "-m", "--max-epoch", default=10, type=int, help="maximum epochs", dest="max_epoch"
@@ -158,9 +158,8 @@ def parseargs(arg=None) -> argparse.Namespace:
     parser.add_argument(
         "-s",
         "--secure-agg",
-        choices=[True, False],
-        default=False,
-        type=bool,
+        choices=["True", "False"],
+        default="False",
         help="secure aggregation",
         dest="secure",
     )
