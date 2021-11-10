@@ -6,7 +6,7 @@
 # Fed-SINGA
 
 [![SINGA](https://img.shields.io/badge/SINGA-803300?logoColor=white)](https://singa.apache.org/)
-![coverage](https://img.shields.io/badge/coverage-25%25-yellowgreen)
+<!-- ![coverage](https://img.shields.io/badge/coverage-25%25-yellowgreen) -->
 ![license](https://img.shields.io/badge/license-Apache-green)
 
 </div>
@@ -36,7 +36,7 @@ python -m src.client.data.download_mnist
 # bank
 # 1. download the data manually from https://archive.ics.uci.edu/ml/datasets/bank+marketing
 # 2. put it under the /data folder
-# 3. run the following command which: 
+# 3. run the following command which:
 #    (1) splits the dataset into N subsets
 #    (2) splits each subsets into train set and test set (8:2)
 python -m src.client.data.bank N
